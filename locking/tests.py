@@ -6,7 +6,6 @@ import time
 from django.test import TestCase
 
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
 
 from .exceptions import AlreadyLocked
 from .models import Lock, _get_lock_name
@@ -22,13 +21,13 @@ class LockTest(TestCase):
         self.assertTrue(Lock.objects.is_locked(self.user))
         l.release()
         self.assertTrue(not Lock.objects.is_locked(self.user))
-    
+
     def test_obj_with_expired_lock_is_not_locked(self):
         ''' Tests that manager.is_locked returns False if locks are expired '''
         Lock.objects.acquire_lock(self.user, max_age=1)
         time.sleep(2)  # make lock expire
         self.assertFalse(Lock.objects.is_locked(self.user))
-    
+
     def test_acquire_and_renew(self):
         ''' Tests an aquire/renew cycle '''
         l = Lock.objects.acquire_lock(self.user)
@@ -36,7 +35,7 @@ class LockTest(TestCase):
         time.sleep(1)
         l.renew()
         self.assertLess(expires, l.expires_on)
-        
+        time.sleep(1)
         l2 = Lock.objects.renew_lock(l.pk)
         self.assertEqual(l.pk, l2.pk)
         self.assertLess(l.expires_on, l2.expires_on)
@@ -78,7 +77,7 @@ class LockTest(TestCase):
     def test_relock(self):
         '''Test to allow lock if lock is expired'''
         l = Lock.objects.acquire_lock(self.user, max_age=1)
-        time.sleep(1)
+        time.sleep(2)
         self.assertTrue(l.is_expired)
         # try to lock again
         l2 = Lock.objects.acquire_lock(self.user, max_age=1)
@@ -88,7 +87,7 @@ class LockTest(TestCase):
         '''Test the expired locks'''
         l = Lock.objects.acquire_lock(self.user, max_age=0)
         l2 = Lock.objects.acquire_lock(l, max_age=1)
-        time.sleep(1)  # make lock expire
+        time.sleep(2)  # make lock expire
         self.assertTrue(not l.is_expired)
         self.assertTrue(l2.is_expired)
         expired_locks = Lock.objects.get_expired_locks()
